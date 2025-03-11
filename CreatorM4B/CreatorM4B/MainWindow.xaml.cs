@@ -38,7 +38,7 @@ namespace CreatorM4B
 
         private void AboutButton_Click(object sender, RoutedEventArgs e)
         {
-
+            new AboutDialog() { Owner = this }.ShowDialog();
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
