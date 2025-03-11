@@ -11,11 +11,24 @@
     <Product>Создание файла M4B из файлов MP3</Product>
     <Description>Создание файла аудиокниги в формате M4B из файлов MP3.</Description>
     <Copyright>Copyright © Gemiyur 2025</Copyright>
+    <ApplicationIcon>Images\CreatorM4B.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Images\About.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Images\CreatorM4B.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="z440.atl.core" Version="6.19.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Images\About.png" />
   </ItemGroup>
 
 </Project>

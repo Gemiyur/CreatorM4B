@@ -6,7 +6,9 @@
         xmlns:local="clr-namespace:CreatorM4B"
         mc:Ignorable="d"
         Title="Создание файла M4B из файлов MP3"
-        Width="700" Height="350"
+        Width="700" Height="350" ResizeMode="CanResizeWithGrip"
+        MinWidth="500" MinHeight="300"
+        d:Width="700" d:Height="350"
         WindowStartupLocation="CenterScreen">
 
     <Grid>
