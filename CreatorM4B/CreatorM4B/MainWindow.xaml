@@ -81,7 +81,7 @@
 
         <StatusBar Grid.Row="4">
             <StatusBarItem>
-                <TextBlock x:Name="StatusBarBooksCount" Text="Папка не выбрана" />
+                <TextBlock x:Name="StatusTextBlock" Text="Папка не выбрана" />
             </StatusBarItem>
         </StatusBar>
     </Grid>
