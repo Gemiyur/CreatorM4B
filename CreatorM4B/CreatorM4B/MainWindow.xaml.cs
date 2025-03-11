@@ -80,6 +80,19 @@ namespace CreatorM4B
 
         }
 
+        private void FileButton_Click(object sender, RoutedEventArgs e)
+        {
+            var fileDialog = new SaveFileDialog()
+            {
+                AddToRecent = false,
+                DefaultExt = ".m4b",
+                Title = "Создать файл книги",
+                Filter = $"Файлы книг|*.m4b"
+            };
+            if (fileDialog.ShowDialog() != true)
+                return;
+        }
+
         private void CreateButton_Click(object sender, RoutedEventArgs e)
         {
             if (Worker.IsBusy == true)
@@ -87,19 +100,7 @@ namespace CreatorM4B
                 MessageBox.Show("Выполняется предыдущая операция.", Title);
                 return;
             }
-
-            var fileDialog = new SaveFileDialog()
-            {
-                AddToRecent = false,
-                DefaultExt = ".m4b",
-                Title = "Создание файл книги",
-                Filter = $"Файлы книг|*.m4b"
-            };
-            if (fileDialog.ShowDialog() != true)
-                return;
-            var allImages = MessageBox.Show("Добавить изображения из всех файлов?", Title,
-                                             MessageBoxButton.YesNo) == MessageBoxResult.Yes;
-            object[] parameters = [FolderTextBox.Text, fileDialog.FileName, allImages];
+            object[] parameters = [FolderTextBox.Text, FileTextBox.Text, AllImagesCheckBox.IsChecked == true];
             StatusTextBlock.Text = "Создание...";
             Worker.RunWorkerAsync(parameters);
         }
