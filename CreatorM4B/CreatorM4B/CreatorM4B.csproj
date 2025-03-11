@@ -13,4 +13,9 @@
     <Copyright>Copyright © Gemiyur 2025</Copyright>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="z440.atl.core" Version="6.19.0" />
+  </ItemGroup>
+
 </Project>
