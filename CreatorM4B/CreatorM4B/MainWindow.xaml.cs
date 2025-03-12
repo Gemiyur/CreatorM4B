@@ -11,6 +11,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
+using ATL;
 
 namespace CreatorM4B
 {
@@ -19,6 +20,13 @@ namespace CreatorM4B
     /// </summary>
     public partial class MainWindow : Window
     {
+        private class FileItem(string filename)
+        {
+            public string Name = filename;
+
+            public Track Track = new(filename);
+        }
+
         private const string CreateButtonNewText = "Новый";
 
         private readonly string CreateButtonCreateText;

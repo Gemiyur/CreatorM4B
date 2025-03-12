@@ -43,10 +43,10 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0" Orientation="Horizontal">
-                <Button x:Name="FolderButton" Content="Папка"
+                <Button x:Name="FolderButton" Content="Папка с MP3"
                         Style="{StaticResource ButtonStyle}"
                         Click="FolderButton_Click" />
-                <Button x:Name="FileButton" Content="Файл"
+                <Button x:Name="FileButton" Content="Файл M4B"
                         Margin="10,0,0,0"
                         Style="{StaticResource ButtonStyle}"
                         Click="FileButton_Click" />
