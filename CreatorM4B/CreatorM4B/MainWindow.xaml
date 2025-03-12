@@ -97,7 +97,7 @@
 
         <StatusBar Grid.Row="5">
             <StatusBarItem>
-                <TextBlock x:Name="StatusTextBlock" Text="Папка не выбрана" />
+                <TextBlock x:Name="StatusTextBlock" />
             </StatusBarItem>
         </StatusBar>
     </Grid>

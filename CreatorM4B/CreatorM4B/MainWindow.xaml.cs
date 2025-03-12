@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Text;
@@ -10,7 +11,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace CreatorM4B
 {
@@ -19,18 +19,28 @@ namespace CreatorM4B
     /// </summary>
     public partial class MainWindow : Window
     {
+        private const string CreateButtonNewText = "Новый";
+
+        private readonly string CreateButtonCreateText;
+
         private readonly BackgroundWorker Worker = new()
         {
-            WorkerSupportsCancellation = true,
+            //WorkerSupportsCancellation = true,
             WorkerReportsProgress = true
         };
 
         public MainWindow()
         {
             InitializeComponent();
+            CreateButtonCreateText = (string)CreateButton.Content;
             Worker.DoWork += Worker_DoWork;
             Worker.ProgressChanged += Worker_ProgressChanged;
             Worker.RunWorkerCompleted += Worker_RunWorkerCompleted;
+        }
+
+        private void CheckCreateButton()
+        {
+            CreateButton.IsEnabled = FolderTextBox.Text.Any() && FileTextBox.Text.Any();
         }
 
         private FileInfo? Merge(string folderName, string fileName, bool allImages, BackgroundWorker? worker, DoWorkEventArgs e)
@@ -73,11 +83,28 @@ namespace CreatorM4B
                 StatusTextBlock.Text = "Готово";
             }
             var result = (FileInfo?)e.Result;
+            CreateButton.Content = CreateButtonNewText;
+            CreateButton.IsEnabled = true;
+            CloseButton.IsEnabled = true;
         }
 
         private void FolderButton_Click(object sender, RoutedEventArgs e)
         {
-
+            var folderDialog = new OpenFolderDialog()
+            {
+                AddToRecent = false,
+                Title = "Папка с файлами книги",
+            };
+            if (folderDialog.ShowDialog() != true)
+                return;
+            FolderTextBox.Text = folderDialog.FolderName;
+            var folderInfo = new DirectoryInfo(FolderTextBox.Text);
+            var files = folderInfo.GetFiles();
+            var sb = new StringBuilder();
+            foreach (var file in files)
+                sb.Append(file == files.First() ? file : "\n" + file);
+            FilesTextBox.Text = sb.ToString();
+            CheckCreateButton();
         }
 
         private void FileButton_Click(object sender, RoutedEventArgs e)
@@ -91,17 +118,33 @@ namespace CreatorM4B
             };
             if (fileDialog.ShowDialog() != true)
                 return;
+            var filename = Path.GetExtension(fileDialog.FileName).Equals(".m4b", StringComparison.CurrentCultureIgnoreCase)
+                ? fileDialog.FileName
+                : fileDialog.FileName + ".m4b";
+            FileTextBox.Text = filename;
+            CheckCreateButton();
         }
 
         private void CreateButton_Click(object sender, RoutedEventArgs e)
         {
-            if (Worker.IsBusy == true)
+            if ((string)CreateButton.Content == CreateButtonNewText)
             {
-                MessageBox.Show("Выполняется предыдущая операция.", Title);
+                CreateButton.Content = CreateButtonCreateText;
+                FolderTextBox.Text = string.Empty;
+                FileTextBox.Text = string.Empty;
+                StatusTextBlock.Text = string.Empty;
+                FilesTextBox.Text = string.Empty;
+                FolderButton.IsEnabled = true;
+                FileButton.IsEnabled = true;
+                CheckCreateButton();
                 return;
             }
-            object[] parameters = [FolderTextBox.Text, FileTextBox.Text, AllImagesCheckBox.IsChecked == true];
+            FolderButton.IsEnabled = false;
+            FileButton.IsEnabled = false;
+            CreateButton.IsEnabled = false;
+            CloseButton.IsEnabled = false;
             StatusTextBlock.Text = "Создание...";
+            object[] parameters = [FolderTextBox.Text, FileTextBox.Text, AllImagesCheckBox.IsChecked == true];
             Worker.RunWorkerAsync(parameters);
         }
 
