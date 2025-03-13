@@ -12,6 +12,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using ATL;
+using NAudio.Wave;
+using System.Linq;
 
 namespace CreatorM4B
 {
@@ -33,7 +35,6 @@ namespace CreatorM4B
 
         private readonly BackgroundWorker Worker = new()
         {
-            //WorkerSupportsCancellation = true,
             WorkerReportsProgress = true
         };
 
@@ -51,9 +52,125 @@ namespace CreatorM4B
             CreateButton.IsEnabled = FolderTextBox.Text.Any() && FileTextBox.Text.Any();
         }
 
-        private FileInfo? Merge(string folderName, string fileName, bool allImages, BackgroundWorker? worker, DoWorkEventArgs e)
+        private FileInfo? Merge(string folderName, string fileName, bool allImages, BackgroundWorker? worker)
         {
-            return null;
+            worker?.ReportProgress(0, "сбор данных...");
+            var folder = new DirectoryInfo(folderName);
+            var fileItems = folder.GetFiles("*.mp3")
+                .Select(x => new FileItem(x.FullName))
+                .OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToArray();
+            if (fileItems == null || !fileItems.Any())
+            {
+                return null;
+            }
+
+            var mergedMP3 = Path.GetTempFileName(); // Имя объединённого временного файла mp3.
+            var mergedM4A = mergedMP3 + ".m4a";     // Имя объединённого временного файла m4a.
+
+            try
+            {
+                // Создаём объединённый временный файл mp3, состоящий из всех файлов mp3 в папке.
+                worker?.ReportProgress(0, "объединение файлов...");
+                using (var stream = new FileStream(mergedMP3, FileMode.OpenOrCreate))
+                {
+                    foreach (var file in fileItems)
+                    {
+                        var reader = new Mp3FileReader(file.Name);
+                        if ((stream.Position == 0) && (reader.Id3v2Tag != null))
+                        {
+                            stream.Write(reader.Id3v2Tag.RawData, 0, reader.Id3v2Tag.RawData.Length);
+                        }
+                        Mp3Frame frame;
+                        while ((frame = reader.ReadNextFrame()) != null)
+                        {
+                            stream.Write(frame.RawData, 0, frame.RawData.Length);
+                        }
+                    }
+                }
+
+                // Перекодируем временный файл mp3 в m4a.
+                // Напрямую кодировать в m4b нельзя.
+                // Перекодировщик требует расширение m4a.
+                worker?.ReportProgress(0, "перекодировка...");
+                using (var stream = new MediaFoundationReader(mergedMP3))
+                {
+                    MediaFoundationEncoder.EncodeToAac(stream, mergedM4A);
+                }
+
+                // Перемещаем файл временный файл m4a в целевую папку с целевым именем файла m4b.
+                File.Move(mergedM4A, fileName, true);
+
+                // Формируем и записываем тег в итоговый файл m4b.
+                worker?.ReportProgress(0, "запись тега...");
+
+                var firstTrack = fileItems.First().Track;
+
+                Settings.MP4_createNeroChapters = true;
+                Settings.MP4_createQuicktimeChapters = true;
+
+                var track = new Track(fileName);
+
+                track.Album = firstTrack.Album;
+                track.AlbumArtist = firstTrack.AlbumArtist;
+                track.Artist = firstTrack.Artist;
+                track.Comment = firstTrack.Comment;
+                track.Date = firstTrack.Date;
+                track.Description = firstTrack.Description;
+                track.Genre = firstTrack.Genre;
+                track.Title = firstTrack.Album;
+                track.Language = firstTrack.Language;
+                track.Year = firstTrack.Year;
+
+                // Изображения обложки.
+                if (allImages)
+                {
+                    // Добавляем изображения из всех файлов MP3.
+                    foreach (var fileItem in fileItems)
+                    {
+                        foreach (var picture in fileItem.Track.EmbeddedPictures)
+                        {
+                            track.EmbeddedPictures.Add(picture);
+                        }
+                    }
+                }
+                else
+                {
+                    // Добавляем изображения только из первого файла MP3.
+                    foreach (var picture in firstTrack.EmbeddedPictures)
+                    {
+                        track.EmbeddedPictures.Add(picture);
+                    }
+                }
+
+                // Содержание (разделы).
+                var timestamp = new TimeSpan();
+                foreach (var fileItem in fileItems)
+                {
+                    var chapter = new ChapterInfo
+                    {
+                        Title = fileItem.Track.Title,
+                        StartTime = (uint)timestamp.TotalMilliseconds,
+                        StartOffset = (uint)timestamp.TotalMilliseconds
+                    };
+                    timestamp += TimeSpan.FromMilliseconds(fileItem.Track.DurationMs);
+                    chapter.EndTime = (uint)timestamp.TotalMilliseconds;
+                    chapter.EndOffset = (uint)timestamp.TotalMilliseconds;
+                    track.Chapters.Add(chapter);
+                }
+
+                track.Save();
+                return new FileInfo(fileName);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            finally
+            {
+                File.Delete(mergedMP3);
+                File.Delete(mergedM4A);
+            }
         }
 
         private void Window_Closing(object sender, CancelEventArgs e)
@@ -70,13 +187,13 @@ namespace CreatorM4B
             var parameters = (object[]?)e.Argument;
             BackgroundWorker? worker = sender as BackgroundWorker;
             e.Result = parameters != null
-                ? Merge((string)parameters[0], (string)parameters[1], (bool)parameters[2], worker, e)
+                ? Merge((string)parameters[0], (string)parameters[1], (bool)parameters[2], worker)
                 : null;
         }
 
         private void Worker_ProgressChanged(object? sender, ProgressChangedEventArgs e)
         {
-            StatusTextBlock.Text = (string)e.UserState;
+            StatusTextBlock.Text = $"Создание файла: {e.UserState as string}";
         }
 
         private void Worker_RunWorkerCompleted(object? sender, RunWorkerCompletedEventArgs e)
@@ -107,7 +224,10 @@ namespace CreatorM4B
                 return;
             FolderTextBox.Text = folderDialog.FolderName;
             var folderInfo = new DirectoryInfo(FolderTextBox.Text);
-            var files = folderInfo.GetFiles();
+            var files = folderInfo.GetFiles("*.mp3")
+                .Select(x => x.FullName)
+                .Order(StringComparer.CurrentCultureIgnoreCase)
+                .ToArray();
             var sb = new StringBuilder();
             foreach (var file in files)
                 sb.Append(file == files.First() ? file : "\n" + file);
@@ -151,7 +271,6 @@ namespace CreatorM4B
             FileButton.IsEnabled = false;
             CreateButton.IsEnabled = false;
             CloseButton.IsEnabled = false;
-            StatusTextBlock.Text = "Создание...";
             object[] parameters = [FolderTextBox.Text, FileTextBox.Text, AllImagesCheckBox.IsChecked == true];
             Worker.RunWorkerAsync(parameters);
         }
