@@ -31,7 +31,6 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -83,19 +82,15 @@
                      Style="{StaticResource ReadOnlyTextBoxStyle}" />
         </Grid>
 
-        <CheckBox Grid.Row="2" x:Name="AllImagesCheckBox"
-                  Content="Добавить изображения из всех файлов MP3, а не только из первого"
-                  Margin="0,10,0,0" />
-        
-        <TextBlock Grid.Row="3" Text="Файлы MP3" Margin="0,10,0,0" />
+        <TextBlock Grid.Row="2" Text="Файлы MP3" Margin="0,10,0,0" />
 
-        <TextBox Grid.Row="4" x:Name="FilesTextBox"
+        <TextBox Grid.Row="3" x:Name="FilesTextBox"
                  HorizontalScrollBarVisibility="Auto"
                  VerticalScrollBarVisibility="Auto"
                  Margin="0,4,0,10"
                  Style="{StaticResource ReadOnlyTextBoxStyle}" />
 
-        <StatusBar Grid.Row="5">
+        <StatusBar Grid.Row="4">
             <StatusBarItem>
                 <TextBlock x:Name="StatusTextBlock" />
             </StatusBarItem>

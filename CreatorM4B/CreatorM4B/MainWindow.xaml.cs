@@ -4,8 +4,8 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using ATL;
-using NAudio.Wave;
 using NAudio.MediaFoundation;
+using NAudio.Wave;
 
 namespace CreatorM4B
 {
@@ -39,7 +39,7 @@ namespace CreatorM4B
             Worker.RunWorkerCompleted += Worker_RunWorkerCompleted;
         }
 
-        private static bool Merge(string folderName, string fileName, bool allImages, BackgroundWorker? worker)
+        private static bool Merge(string folderName, string fileName, BackgroundWorker? worker)
         {
             worker?.ReportProgress(0, "сбор данных...");
             var folder = new DirectoryInfo(folderName);
@@ -138,23 +138,13 @@ namespace CreatorM4B
                     Year = firstTrack.Year
                 };
 
-                // Изображения обложки.
-                if (allImages)
+                // Добавляем только уникальные изображения из всех файлов MP3.
+                foreach (var fileItem in fileItems)
                 {
-                    // Добавляем изображения из всех файлов MP3.
-                    foreach (var fileItem in fileItems)
+                    foreach (var picture in fileItem.Track.EmbeddedPictures)
                     {
-                        foreach (var picture in fileItem.Track.EmbeddedPictures)
-                        {
-                            track.EmbeddedPictures.Add(picture);
-                        }
-                    }
-                }
-                else
-                {
-                    // Добавляем изображения только из первого файла MP3.
-                    foreach (var picture in firstTrack.EmbeddedPictures)
-                    {
+                        if (track.EmbeddedPictures.Any(x => x.PictureHash == picture.PictureHash))
+                            continue;
                         track.EmbeddedPictures.Add(picture);
                     }
                 }
@@ -208,8 +198,8 @@ namespace CreatorM4B
             var parameters = (object[]?)e.Argument;
             BackgroundWorker? worker = sender as BackgroundWorker;
             e.Result = parameters != null
-                ? Merge((string)parameters[0], (string)parameters[1], (bool)parameters[2], worker)
-                : null;
+                ? Merge((string)parameters[0], (string)parameters[1], worker)
+                : false;
         }
 
         private void Worker_ProgressChanged(object? sender, ProgressChangedEventArgs e)
@@ -292,7 +282,7 @@ namespace CreatorM4B
             FileButton.IsEnabled = false;
             CreateButton.IsEnabled = false;
             CloseButton.IsEnabled = false;
-            object[] parameters = [FolderTextBox.Text, FileTextBox.Text, AllImagesCheckBox.IsChecked == true];
+            object[] parameters = [FolderTextBox.Text, FileTextBox.Text];
             Worker.RunWorkerAsync(parameters);
         }
 
