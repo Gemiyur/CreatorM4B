@@ -1,11 +1,9 @@
-﻿using System.Configuration;
-using System.Data;
-using System.Windows;
+﻿using System.Windows;
 
 namespace CreatorM4B
 {
     /// <summary>
-    /// Interaction logic for App.xaml
+    /// Класс приложения.
     /// </summary>
     public partial class App : Application
     {

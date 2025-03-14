@@ -1,19 +1,11 @@
 ﻿using Microsoft.Win32;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Text;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using ATL;
 using NAudio.Wave;
-using System.Linq;
+using NAudio.MediaFoundation;
 
 namespace CreatorM4B
 {
@@ -47,12 +39,7 @@ namespace CreatorM4B
             Worker.RunWorkerCompleted += Worker_RunWorkerCompleted;
         }
 
-        private void CheckCreateButton()
-        {
-            CreateButton.IsEnabled = FolderTextBox.Text.Any() && FileTextBox.Text.Any();
-        }
-
-        private FileInfo? Merge(string folderName, string fileName, bool allImages, BackgroundWorker? worker)
+        private static bool Merge(string folderName, string fileName, bool allImages, BackgroundWorker? worker)
         {
             worker?.ReportProgress(0, "сбор данных...");
             var folder = new DirectoryInfo(folderName);
@@ -62,7 +49,7 @@ namespace CreatorM4B
                 .ToArray();
             if (fileItems == null || !fileItems.Any())
             {
-                return null;
+                return false;
             }
 
             var mergedMP3 = Path.GetTempFileName(); // Имя объединённого временного файла mp3.
@@ -72,7 +59,7 @@ namespace CreatorM4B
             {
                 // Создаём объединённый временный файл mp3, состоящий из всех файлов mp3 в папке.
                 worker?.ReportProgress(0, "объединение файлов...");
-                using (var stream = new FileStream(mergedMP3, FileMode.OpenOrCreate))
+                using (var stream = new FileStream(mergedMP3, FileMode.Create))
                 {
                     foreach (var file in fileItems)
                     {
@@ -93,9 +80,37 @@ namespace CreatorM4B
                 // Напрямую кодировать в m4b нельзя.
                 // Перекодировщик требует расширение m4a.
                 worker?.ReportProgress(0, "перекодировка...");
-                using (var stream = new MediaFoundationReader(mergedMP3))
+
+                using (var reader = new MediaFoundationReader(mergedMP3))
                 {
-                    MediaFoundationEncoder.EncodeToAac(stream, mergedM4A);
+                    // Поддерживаемые скорости потока.
+                    // Работает только с этими параметрами.
+                    // Возвращает массив [96000, 128000, 160000, 192000].
+                    // В остальных случаях возвращает пустой массив.
+                    var bitrates = MediaFoundationEncoder.GetEncodeBitrates(AudioSubtypes.MFAudioFormat_AAC, 44100, 2);
+
+                    // Если массив пустой, то присваиваем ожидаемые значения.
+                    if (!bitrates.Any())
+                    {
+                        bitrates = [96000, 128000, 160000, 192000];
+                    }
+
+                    // Наибольшая скорость потока среди файлов mp3.
+                    var bitrateMP3 = fileItems.Max(x => x.Track.Bitrate) * 1000;
+
+                    // Определяем скорость потока для перекодировки.
+                    int bitrate;
+                    if (bitrates.Any(x => x == bitrateMP3))
+                        bitrate = bitrateMP3;
+                    else if (bitrateMP3 > bitrates.Last())
+                        bitrate = bitrates.Last();
+                    else if (bitrateMP3 < bitrates.First())
+                        bitrate = bitrates.First();
+                    else
+                        bitrate = bitrates.FirstOrDefault(x => x > bitrateMP3);
+
+                    // Перекодируем с определённой скоростью потока.
+                    MediaFoundationEncoder.EncodeToAac(reader, mergedM4A, bitrate);
                 }
 
                 // Перемещаем файл временный файл m4a в целевую папку с целевым именем файла m4b.
@@ -109,18 +124,19 @@ namespace CreatorM4B
                 Settings.MP4_createNeroChapters = true;
                 Settings.MP4_createQuicktimeChapters = true;
 
-                var track = new Track(fileName);
-
-                track.Album = firstTrack.Album;
-                track.AlbumArtist = firstTrack.AlbumArtist;
-                track.Artist = firstTrack.Artist;
-                track.Comment = firstTrack.Comment;
-                track.Date = firstTrack.Date;
-                track.Description = firstTrack.Description;
-                track.Genre = firstTrack.Genre;
-                track.Title = firstTrack.Album;
-                track.Language = firstTrack.Language;
-                track.Year = firstTrack.Year;
+                var track = new Track(fileName)
+                {
+                    Album = firstTrack.Album,
+                    AlbumArtist = firstTrack.AlbumArtist,
+                    Artist = firstTrack.Artist,
+                    Comment = firstTrack.Comment,
+                    Date = firstTrack.Date,
+                    Description = firstTrack.Description,
+                    Genre = firstTrack.Genre,
+                    Title = firstTrack.Album,
+                    Language = firstTrack.Language,
+                    Year = firstTrack.Year
+                };
 
                 // Изображения обложки.
                 if (allImages)
@@ -160,17 +176,22 @@ namespace CreatorM4B
                 }
 
                 track.Save();
-                return new FileInfo(fileName);
+                return true;
             }
             catch (Exception)
             {
-                return null;
+                return false;
             }
             finally
             {
                 File.Delete(mergedMP3);
                 File.Delete(mergedM4A);
             }
+        }
+
+        private void CheckCreateButton()
+        {
+            CreateButton.IsEnabled = FolderTextBox.Text.Any() && FileTextBox.Text.Any();
         }
 
         private void Window_Closing(object sender, CancelEventArgs e)
@@ -207,7 +228,7 @@ namespace CreatorM4B
             {
                 StatusTextBlock.Text = "Готово";
             }
-            var result = (FileInfo?)e.Result;
+            //var result = (bool?)e.Result == true;
             CreateButton.Content = CreateButtonNewText;
             CreateButton.IsEnabled = true;
             CloseButton.IsEnabled = true;
