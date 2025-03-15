@@ -92,7 +92,7 @@
 
         <StatusBar Grid.Row="4">
             <StatusBarItem>
-                <TextBlock x:Name="StatusTextBlock" />
+                <TextBlock x:Name="StatusTextBlock" MouseDown="StatusTextBlock_MouseDown" />
             </StatusBarItem>
         </StatusBar>
     </Grid>

@@ -25,6 +25,8 @@ namespace CreatorM4B
 
         private readonly string CreateButtonCreateText;
 
+        private string ResultMessage = string.Empty;
+
         private readonly BackgroundWorker Worker = new()
         {
             WorkerReportsProgress = true
@@ -188,7 +190,7 @@ namespace CreatorM4B
         {
             if (Worker.IsBusy == true)
             {
-                MessageBox.Show("Выполняется операция.", Title);
+                MessageBox.Show("Нельзя закрывать приложение, пока идёт создание файла.", Title);
                 e.Cancel = true;
             }
         }
@@ -211,13 +213,15 @@ namespace CreatorM4B
         {
             if (e.Error != null)
             {
-                MessageBox.Show(e.Error.Message);
+                ResultMessage = e.Error.ToString();
                 StatusTextBlock.Text = "Ошибка";
             }
             else
             {
+                ResultMessage = "Файл успешно создан.";
                 StatusTextBlock.Text = "Готово";
             }
+            // Пусть пока остаётся на всякий случай.
             //var result = (bool?)e.Result == true;
             CreateButton.Content = CreateButtonNewText;
             CreateButton.IsEnabled = true;
@@ -269,6 +273,7 @@ namespace CreatorM4B
             if ((string)CreateButton.Content == CreateButtonNewText)
             {
                 CreateButton.Content = CreateButtonCreateText;
+                ResultMessage = string.Empty;
                 FolderTextBox.Text = string.Empty;
                 FileTextBox.Text = string.Empty;
                 StatusTextBlock.Text = string.Empty;
@@ -289,6 +294,12 @@ namespace CreatorM4B
         private void AboutButton_Click(object sender, RoutedEventArgs e)
         {
             new AboutDialog() { Owner = this }.ShowDialog();
+        }
+
+        private void StatusTextBlock_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (ResultMessage != string.Empty)
+                MessageBox.Show(ResultMessage, Title);
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
