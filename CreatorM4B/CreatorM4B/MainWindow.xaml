@@ -21,7 +21,7 @@
             <Style x:Key="ReadOnlyTextBoxStyle" TargetType="TextBox">
                 <Setter Property="IsReadOnly" Value="True" />
                 <Setter Property="IsReadOnlyCaretVisible" Value="True" />
-                <Setter Property="Background" Value="AliceBlue" />
+                <Setter Property="Background" Value="#FFF0F0F0" />
             </Style>
         </ResourceDictionary>
     </Window.Resources>
