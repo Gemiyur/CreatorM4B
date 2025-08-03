@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Company>Gemiyur</Company>
     <Product>Создание файла M4B из файлов MP3</Product>
     <Description>Предназначено в первую очередь для создания аудиокниг.
