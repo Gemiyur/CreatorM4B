@@ -135,8 +135,12 @@ public partial class MainWindow : Window
                 Date = firstTrack.Date,
                 Description = firstTrack.Description,
                 Genre = firstTrack.Genre,
-                Title = firstTrack.Album,
                 Language = firstTrack.Language,
+                LongDescription = firstTrack.LongDescription,
+                Lyrics = firstTrack.Lyrics,
+                SeriesPart = firstTrack.SeriesPart,
+                SeriesTitle = firstTrack.SeriesTitle,
+                Title = firstTrack.Album,
                 Year = firstTrack.Year
             };
 
